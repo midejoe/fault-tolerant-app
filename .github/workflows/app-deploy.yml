@@ -1,0 +1,69 @@
+name: Deploy Application
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  ACR_NAME: ${{ vars.ACR_NAME }}
+  AKS_NAME: ${{ vars.AKS_NAME }}
+  RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
+  NAMESPACE: 'cats-prod'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      
+    - name: Docker Login
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ env.ACR_NAME }}.azurecr.io
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+        
+    - name: Build and Push
+      run: |
+        docker build -t ${{ env.ACR_NAME }}.azurecr.io/cats-app:${{ github.ref_name }} .
+        docker push ${{ env.ACR_NAME }}.azurecr.io/cats-app:${{ github.ref_name }}
+        
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
+    - name: Get AKS Credentials
+      run: |
+        az aks get-credentials \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --name ${{ env.AKS_NAME }} \
+          --overwrite-existing
+          
+    - name: Deploy Application
+      run: |
+        # Substitute variables in manifests
+        sed -i "s/\$ACR_NAME/${{ env.ACR_NAME }}/g" manifests/deployment.yaml
+        sed -i "s/\$TAG/${{ github.ref_name }}/g" manifests/deployment.yaml
+        
+        # Apply manifests
+        kubectl apply -f manifests/namespace.yaml
+        kubectl apply -f manifests/deployment.yaml
+        kubectl apply -f manifests/service.yaml
+        kubectl apply -f manifests/hpa.yaml
+        
+        # Verify deployment
+        kubectl rollout status deployment/cats-app -n ${{ env.NAMESPACE }}

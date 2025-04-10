@@ -1,0 +1,50 @@
+name: Deploy Infrastructure
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/**'
+
+env:
+  TF_VERSION: '1.5.0'
+  AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+        
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ env.AZURE_CREDENTIALS }}
+        
+    - name: Terraform Init
+      working-directory: ./infrastructure
+      run: terraform init
+      
+    - name: Terraform Plan
+      working-directory: ./infrastructure
+      run: terraform plan -out=tfplan
+      
+    - name: Terraform Apply
+      working-directory: ./infrastructure
+      run: terraform apply -auto-approve tfplan
+      
+    - name: Output Terraform Data
+      working-directory: ./infrastructure
+      run: |
+        echo "ACR_NAME=$(terraform output -raw acr_name)" >> $GITHUB_ENV
+        echo "AKS_NAME=$(terraform output -raw aks_name)" >> $GITHUB_ENV
+        echo "RESOURCE_GROUP=$(terraform output -raw resource_group_name)" >> $GITHUB_ENV

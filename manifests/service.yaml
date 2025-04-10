@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cats-app
+  annotations:
+    service.beta.kubernetes.io/azure-dns-label-name: "cats-app-v1"
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8000
+  selector:
+    app: cats-app
