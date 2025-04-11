@@ -71,7 +71,7 @@ jobs:
       uses: actions/download-artifact@v3
       with:
         name: tfplan
-        path: Infrastructure
+        path: Infrastructure/tfplan
         
     - name: Terraform Init
       working-directory: ./Infrastructure
