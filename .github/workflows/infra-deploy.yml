@@ -12,7 +12,7 @@ env:
   AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
 jobs:
-  deploy:
+  validate-and-plan:
     runs-on: ubuntu-latest
     environment: production
     
@@ -34,17 +34,56 @@ jobs:
       working-directory: ./Infrastructure
       run: terraform init
       
+    - name: Terraform Validate
+      working-directory: ./Infrastructure
+      run: terraform validate
+      
     - name: Terraform Plan
       working-directory: ./Infrastructure
       run: terraform plan -out=tfplan
       
-    # - name: Terraform Apply
-    #   working-directory: ../infrastructure
-    #   run: terraform apply -auto-approve tfplan
+    - name: Upload Terraform Plan
+      uses: actions/upload-artifact@v3
+      with:
+        name: tfplan
+        path: Infrastructure/tfplan
+
+  apply:
+    needs: validate-and-plan
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
       
-    # - name: Output Terraform Data
-    #   working-directory: ../infrastructure
-    #   run: |
-    #     echo "ACR_NAME=$(terraform output -raw acr_name)" >> $GITHUB_ENV
-    #     echo "AKS_NAME=$(terraform output -raw aks_name)" >> $GITHUB_ENV
-    #     echo "RESOURCE_GROUP=$(terraform output -raw resource_group_name)" >> $GITHUB_ENV
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+        
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ env.AZURE_CREDENTIALS }}
+        
+    - name: Download Terraform Plan
+      uses: actions/download-artifact@v3
+      with:
+        name: tfplan
+        path: Infrastructure
+        
+    - name: Terraform Init
+      working-directory: ./Infrastructure
+      run: terraform init
+      
+    - name: Terraform Apply
+      working-directory: ./Infrastructure
+      run: terraform apply -auto-approve tfplan
+      
+    - name: Output Terraform Data
+      working-directory: ./Infrastructure
+      run: |
+        echo "ACR_NAME=$(terraform output -raw acr_name)" >> $GITHUB_ENV
+        echo "AKS_NAME=$(terraform output -raw aks_name)" >> $GITHUB_ENV
+        echo "RESOURCE_GROUP=$(terraform output -raw resource_group_name)" >> $GITHUB_ENV
