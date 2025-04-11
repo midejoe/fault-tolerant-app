@@ -72,6 +72,9 @@ jobs:
       with:
         name: tfplan
         path: Infrastructure/tfplan
+
+    - name: Verify Plan File
+      run: ls -la Infrastructure/tfplan
         
     - name: Terraform Init
       working-directory: ./Infrastructure
@@ -79,7 +82,8 @@ jobs:
       
     - name: Terraform Apply
       working-directory: ./Infrastructure
-      run: terraform apply -auto-approve tfplan
+    #   run: terraform apply -auto-approve tfplan
+      run: terraform -chdir=Infrastructure apply -auto-approve tfplan
       
     - name: Output Terraform Data
       working-directory: ./Infrastructure
