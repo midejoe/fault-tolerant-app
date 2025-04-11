@@ -12,7 +12,7 @@ env:
   AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
 jobs:
-  validate-and-plan:
+  deploy:
     runs-on: ubuntu-latest
     environment: production
     
@@ -33,57 +33,14 @@ jobs:
     - name: Terraform Init
       working-directory: ./Infrastructure
       run: terraform init
-      
-    - name: Terraform Validate
-      working-directory: ./Infrastructure
-      run: terraform validate
       
     - name: Terraform Plan
       working-directory: ./Infrastructure
-      run: terraform plan -out=plan.out
-      
-    - name: Upload Terraform Plan
-      uses: actions/upload-artifact@v4
-      with:
-        name: tfplan
-        path: Infrastructure/plan.out
-
-  apply:
-    needs: validate-and-plan
-    runs-on: ubuntu-latest
-    environment: production
-    
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-      
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: ${{ env.TF_VERSION }}
-        
-    - name: Azure Login
-      uses: azure/login@v1
-      with:
-        creds: ${{ env.AZURE_CREDENTIALS }}
-        
-    - name: Download Terraform Plan
-      uses: actions/download-artifact@v4
-      with:
-        name: tfplan
-        path: Infrastructure
-    
-    - name: Rename Plan File
-      run: mv Infrastructure/tfplan Infrastructure/plan.out
-        
-    - name: Terraform Init
-      working-directory: ./Infrastructure
-      run: terraform init
+      run: terraform plan -out=tfplan
       
     - name: Terraform Apply
       working-directory: ./Infrastructure
-      run: terraform apply --auto-approve plan.out
-
+      run: terraform apply -auto-approve tfplan
       
     - name: Output Terraform Data
       working-directory: ./Infrastructure
