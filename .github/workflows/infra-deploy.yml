@@ -45,6 +45,12 @@ jobs:
     - name: Output Terraform Data
       working-directory: ./Infrastructure
       run: |
-        echo "ACR_NAME=$(terraform output -raw acr_name)" >> $GITHUB_ENV
-        echo "AKS_NAME=$(terraform output -raw aks_name)" >> $GITHUB_ENV
-        echo "RESOURCE_GROUP=$(terraform output -raw resource_group_name)" >> $GITHUB_ENV
+        # Get outputs and sanitize them
+        ACR_NAME=$(terraform output -raw acr_name | tr -d '\n')
+        AKS_NAME=$(terraform output -raw aks_name | tr -d '\n')
+        RESOURCE_GROUP=$(terraform output -raw resource_group_name | tr -d '\n')
+        
+        # Set environment variables
+        echo "ACR_NAME=${ACR_NAME}" >> $GITHUB_ENV
+        echo "AKS_NAME=${AKS_NAME}" >> $GITHUB_ENV
+        echo "RESOURCE_GROUP=${RESOURCE_GROUP}" >> $GITHUB_ENV
