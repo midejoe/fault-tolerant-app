@@ -19,13 +19,16 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
-      
-    - name: Docker Login
-      uses: azure/docker-login@v1
+
+    - name: Azure Login
+      uses: azure/login@v1
       with:
-        login-server: ${{ env.ACR_NAME }}.azurecr.io
-        username: ${{ secrets.ACR_USERNAME }}
-        password: ${{ secrets.ACR_PASSWORD }}
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Docker Login to ACR
+      run: |
+        az acr login --name ${{ env.ACR_NAME }}
+    
         
     - name: Build and Push
       run: |
