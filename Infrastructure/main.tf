@@ -42,3 +42,16 @@ resource "azurerm_role_assignment" "acr_pull" {
   scope                            = azurerm_container_registry.acr.id
   skip_service_principal_aad_check = true
 }
+
+
+resource "azurerm_monitor_workspace" "cats" {
+  name                = "cats-monitor"
+  resource_group_name = azurerm_resource_group.cats.name
+  location            = azurerm_resource_group.cats.location
+}
+
+resource "azurerm_kubernetes_cluster_extension" "monitoring" {
+  name           = "microsoft.azuremonitor.containers"
+  cluster_id     = azurerm_kubernetes_cluster.aks.id
+  extension_type = "microsoft.azuremonitor.containers"
+}
