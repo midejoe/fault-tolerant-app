@@ -10,91 +10,116 @@ The deployment is designed for **zero downtime** using Kubernetes' **rolling upd
 
 ---
 
-## Application Enhancements (Without Changing Core Functionality)
+## 🚀 Application Enhancements (Without Changing Core Functionality)
 
-/health Endpoint (Added to lib/cats.rb):
+### ✅ Added `/health` Endpoint (in `lib/cats.rb`)
+
+```ruby
 get '/health' do
   content_type :json
-  { status: 'healthy', version: ENV['APP_VERSION'] || '1.0.0' }.to_json
+  {
+    status: 'healthy',
+    version: ENV['APP_VERSION'] || '1.0.0'
+  }.to_json
 end
 
-This allows the addition of probes in the deployment manifest files where a readiness probe helps to check /health endpoint every 5 seconds to determine when the pod can receive traffic.Also, a liveness probe that checks if application is still running.
+📌 Purpose
+The /health endpoint was introduced to support Kubernetes probes in the deployment manifest:
 
-## 🚀 Azure Infrastructure Setup (Terraform)
+Readiness Probe:
+Checks the /health endpoint every 5 seconds to determine if the pod is ready to receive traffic.
+
+Liveness Probe:
+Monitors the application to ensure it's still running and responsive.
+
+These probes help ensure high availability and resiliency of the application in production environments.
+
+## 🚀 Azure Infrastructure Setup with Terraform
 
 Infrastructure is defined in the `/Infrastructure` folder using **Terraform**.
 
-### ✅ What it sets up
+---
 
-- A **Resource Group** in Azure (`cats-app-rg`)
-- An **Azure Container Registry** (`catsacr<hash>`) to store Docker images
-- An **AKS Cluster** (`cats-aks`) with:
-  - System-assigned managed identity
-  - Auto-scaling node pool
-  - Standard load balancer for public access
-- A **Role Assignment** that allows the AKS cluster to pull images from ACR
+### ✅ What the Setup Includes
 
-### 💻 How to deploy the infrastructure using continuous Deployment (GitHub Actions)
+- **Resource Group**:  
+  - `cats-app-rg`
+  
+- **Azure Container Registry (ACR)**:  
+  - `catsacr<hash>` to store Docker images
 
-Prerequisities:
-create a service principal that will be used for the login step in the pipeline:
-az ad sp create-for-rbac --name "CatsAppDeploy" --role contributor   --scopes /subscriptions/<subscription-id>  --sdk-auth
+- **Azure Kubernetes Service (AKS) Cluster**:  
+  - Cluster name: `cats-aks`  
+  - System-assigned managed identity  
+  - Auto-scaling node pool  
+  - Standard Load Balancer for public access
 
-assign the service principal a user access adminisrtator role and contributor role at the subscription level
-az role assignment create --assignee <client-id> --role "Contributor" --scope /subscriptions/<subscription-id>  && \
-az role assignment create --assignee <client-id> --role "User Access Administrator" --scope /subscriptions/<subscription-id> 
+- **Role Assignment**:  
+  - Grants the AKS cluster permission to pull images from ACR
 
-Secrets management: The login credentials for the service principal(AZURE_CREDENTIALS) will be stored in Github secrets. The following steps are used:
-On GitHub, navigate to the main page of the repository.
+---
 
-Under your repository name, click  Settings. If you cannot see the "Settings" tab, select the  dropdown menu, then click Settings.
+### 💻 Continuous Deployment via GitHub Actions
 
-Screenshot of a repository header showing the tabs. The "Settings" tab is highlighted by a dark orange outline.
-In the "Security" section of the sidebar, select  Secrets and variables, then click Actions.
+#### 🔐 Prerequisites
+
+1. **Create a Service Principal** (for use in the GitHub Actions pipeline):
+
+   ```bash
+   az ad sp create-for-rbac \
+     --name "CatsAppDeploy" \
+     --role contributor \
+     --scopes /subscriptions/<subscription-id> \
+     --sdk-auth
+2. Assign roles to the service principle
+az role assignment create \
+  --assignee <client-id> \
+  --role "Contributor" \
+  --scope /subscriptions/<subscription-id>
+
+az role assignment create \
+  --assignee <client-id> \
+  --role "User Access Administrator" \
+  --scope /subscriptions/<subscription-id>
+
+🔐 Secrets Management in GitHub
+The service principal credentials is stored as a GitHub Secret (AZURE_CREDENTIALS):
+
+Go to your repository on GitHub.
+
+Navigate to Settings → Secrets and variables → Actions.
 
 Click the Secrets tab.
 
-Screenshot of the "Actions secrets and variables" page. The "Secrets" tab is outlined in dark orange.
 Click New repository secret.
 
-In the Name field, type a name for your secret.
+Provide:
 
-In the Secret field, enter the value for your secret.
+Name: AZURE_CREDENTIALS
+
+Secret: (Paste the output from the az ad sp create-for-rbac command)
 
 Click Add secret.
 
 
-The .github/workflows/infra-deploy.yml workflow automates:
-
-Initialize and preview changes and apply using terraform
-
- A Successful deployment takes over 4 minutes with minimal manual intervention as shown in the screenshot below:
- ![alt text](image.png)
-
-
 Deploy the updated image to AKS using kubectl apply
 
-Triggered by:
-Manual trigger (workflow_dispatch)
-1. Navigate to the infrastructure folder:
+⚙️ CI/CD Workflow
+The file .github/workflows/infra-deploy.yml automates the following steps:
 
-   ```bash
-   cd Infrastructure
+Terraform initialization
 
-2. Initialize Terraform:
+Plan preview of infrastructure changes
 
-    ```bash
-    terraform init
+Apply changes with minimal manual intervention
 
-3. Preview the changes:
+⏱️ A successful deployment typically completes in under 5 minutes.
 
-    ```bash
-    terraform plan
+📸 Example Screenshot
+A snapshot of the deployment workflow in action:
+![alt text](image-1.png)
 
-4. Apply the changes:
 
-    ```bash
-    terraform apply
 
 🐳 Docker Setup
 The app is packaged using a Dockerfile based on the lightweight ruby:2.7-alpine image.
@@ -134,6 +159,8 @@ export ACR_NAME=$(terraform output -raw acr_name)
 docker build -t $ACR_NAME.azurecr.io/cats-app:1.0.0 .
 az acr login --name $ACR_NAME
 docker push $ACR_NAME.azurecr.io/cats-app:1.0.0
+The screenshot below shows the image on Azure Container registry
+![alt text](image-2.png)
 
 # 4. Deploy
 az aks get-credentials --resource-group $(terraform output -raw resource_group_name) --name $(terraform output -raw aks_name)
@@ -142,10 +169,15 @@ sed -i "s/\$ACR_NAME/$ACR_NAME/g" manifests/deployment.yaml
 sed -i "s/\$TAG/1.0.0/g" manifests/deployment.yaml
 kubectl apply -f manifests/
 
+Following the successful deployment of the manifests above, the cats app can be accessed via the Loadbalancer frontend ip
+http://128.203.84.44/
+![alt text](image-3.png)
+
+
+
 Automate For Version 2.0.1 Upgrade:
 
-# 1. Update version in .bumpversion.cfg
-# 2. Commit and tag
+# 1. Commit and tag
 git commit -am "Prepare v2.0.1 release"
 git tag v2.0.1
 git push origin v2.0.1
@@ -155,9 +187,9 @@ git push origin v2.0.1
 # - Pushes to ACR
 # - Updates deployment with zero downtime
 
-# OR manually:
-kubectl set image deployment/cats-app cats-app=$ACR_NAME.azurecr.io/cats-app:2.0.1 -n cats-prod
-kubectl rollout status deployment/cats-app -n cats-prod
+The image shows the complete pipeline in github actions
+
+
 
 🔁 Zero Downtime Deployment Strategy
 Achieved using:
@@ -190,10 +222,16 @@ RACK_ENV	production	Sinatra environment
 PORT	8000	App port
 WEB_CONCURRENCY	1	Puma worker processes
 MAX_THREADS	1	Max threads per Puma process
-💬 Example Output
 
-curl https://<external-ip>/
-# => { "url": "http://25.media.tumblr.com/..." }
+## ✅ Pros and Cons of Stack Decisions
+
+| Tool/Choice     | Pros                                                                 | Cons                                                  |
+|------------------|----------------------------------------------------------------------|--------------------------------------------------------|
+| Terraform        | Declarative, modular, widely supported, stateful management         | State file complexity, slower with large infra        |
+| AKS              | Fully managed K8s, integrates well with Azure, supports autoscaling | Can be overkill for simple apps, steep learning curve |
+| ACR              | Secure image storage, seamless with AKS                             | Extra cost compared to DockerHub                      |
+| GitHub Actions   | Native CI/CD, secure secret handling, highly customizable           | Complex matrix workflows can be hard to debug         |
+| Docker           | Portable, lightweight, standard container format                    | Layer caching issues on large builds                  |
 
 
 📂 Directory Structure
