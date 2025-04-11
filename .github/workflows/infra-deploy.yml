@@ -40,7 +40,7 @@ jobs:
       
     - name: Terraform Plan
       working-directory: ./Infrastructure
-      run: terraform plan -out=tfplan
+      run: terraform plan -out=plan.out
       
     - name: Upload Terraform Plan
       uses: actions/upload-artifact@v4
@@ -71,10 +71,10 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: tfplan
-        path: Infrastructure/tfplan
-
-    - name: Verify Plan File
-      run: ls -la Infrastructure/tfplan
+        path: Infrastructure
+    
+    - name: Rename Plan File
+      run: mv Infrastructure/tfplan Infrastructure/plan.out
         
     - name: Terraform Init
       working-directory: ./Infrastructure
@@ -82,13 +82,8 @@ jobs:
       
     - name: Terraform Apply
       working-directory: ./Infrastructure
-    #   run: terraform apply -auto-approve tfplan
-    #   run: terraform -chdir=Infrastructure apply -auto-approve tfplan
-      run: |
-        pwd
-        ls -la
-        ls -la tfplan
-        terraform apply -auto-approve tfplan
+      run: terraform apply --auto-approve plan.out
+
       
     - name: Output Terraform Data
       working-directory: ./Infrastructure
