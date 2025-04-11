@@ -1,18 +1,27 @@
-# Cats 🐱
+# 🐱 Cats Web App — Containerized Sinatra App on AKS
 
-A minimal Sinatra-based web app that returns a URL for a random cat picture on its `/` endpoint.
-
-## Overview
-
-This project includes the infrastructure-as-code setup using **Terraform** to deploy the application on **Azure Kubernetes Service (AKS)** with a **containerized Ruby app**, leveraging **Azure Container Registry (ACR)** for image storage and **GitHub Actions** for CI/CD.
-
-The deployment is designed for **zero downtime** using Kubernetes' **rolling update strategy**, autoscaling, health probes, and load balancing.
+A minimal [Sinatra](http://sinatrarb.com/) web app that returns a URL for a random cat picture on the `/` endpoint. Built for fun, deployed with modern DevOps practices.
 
 ---
 
-## 🚀 Application Enhancements (Without Changing Core Functionality)
+## 🧭 Project Overview
 
-### ✅ Added `/health` Endpoint (in `lib/cats.rb`)
+This project demonstrates an end-to-end deployment using:
+
+- **Azure Kubernetes Service (AKS)** for container orchestration
+- **Azure Container Registry (ACR)** to store Docker images
+- **Terraform** for infrastructure provisioning
+- **GitHub Actions** for CI/CD pipeline automation
+
+✅ Designed for **zero downtime** with health checks, autoscaling, and rolling updates.
+
+---
+
+## 💡 Enhancements
+
+### 🩺 `/health` Endpoint
+
+Added a new route in `lib/cats.rb`:
 
 ```ruby
 get '/health' do
@@ -22,190 +31,144 @@ get '/health' do
     version: ENV['APP_VERSION'] || '1.0.0'
   }.to_json
 end
+```
 
-📌 Purpose
-The /health endpoint was introduced to support Kubernetes probes in the deployment manifest:
+📌 Used by Kubernetes for:
 
-Readiness Probe:
-Checks the /health endpoint every 5 seconds to determine if the pod is ready to receive traffic.
-
-Liveness Probe:
-Monitors the application to ensure it's still running and responsive.
-
-These probes help ensure high availability and resiliency of the application in production environments.
-
-## 🚀 Azure Infrastructure Setup with Terraform
-
-Infrastructure is defined in the `/Infrastructure` folder using **Terraform**.
+- **Readiness Probe** — Checks if the app is ready to receive traffic
+- **Liveness Probe** — Ensures the app is running properly
 
 ---
 
-### ✅ What the Setup Includes
+## ☁️ Azure Infrastructure with Terraform
 
-- **Resource Group**:  
-  - `cats-app-rg`
-  
-- **Azure Container Registry (ACR)**:  
-  - `catsacr<hash>` to store Docker images
+Terraform files live in the `/Infrastructure` folder.
 
-- **Azure Kubernetes Service (AKS) Cluster**:  
-  - Cluster name: `cats-aks`  
-  - System-assigned managed identity  
-  - Auto-scaling node pool  
-  - Standard Load Balancer for public access
+### 🔧 Provisioned Resources
 
-- **Role Assignment**:  
-  - Grants the AKS cluster permission to pull images from ACR
+| Resource                | Details |
+|-------------------------|---------|
+| Resource Group          | `cats-app-rg` |
+| ACR                     | `catsacr<hash>` |
+| AKS Cluster             | `cats-aks` with auto-scaling |
+| Load Balancer           | Standard Public |
+| Role Assignment         | AKS pull access to ACR |
 
 ---
 
-### 💻 Continuous Deployment via GitHub Actions
+## 🔁 CI/CD with GitHub Actions
 
-#### 🔐 Prerequisites
+### 🛠 Prerequisites
 
-1. **Create a Service Principal** (for use in the GitHub Actions pipeline):
+#### 1. Create Azure Service Principal
 
-   ```bash
-   az ad sp create-for-rbac \
-     --name "CatsAppDeploy" \
-     --role contributor \
-     --scopes /subscriptions/<subscription-id> \
-     --sdk-auth
-2. Assign roles to the service principle
-az role assignment create \
-  --assignee <client-id> \
-  --role "Contributor" \
-  --scope /subscriptions/<subscription-id>
+```bash
+az ad sp create-for-rbac   --name "CatsAppDeploy"   --role contributor   --scopes /subscriptions/<subscription-id>   --sdk-auth
+```
 
-az role assignment create \
-  --assignee <client-id> \
-  --role "User Access Administrator" \
-  --scope /subscriptions/<subscription-id>
+#### 2. Assign Additional Roles
 
-🔐 Secrets Management in GitHub
-The service principal credentials is stored as a GitHub Secret (AZURE_CREDENTIALS):
+```bash
+az role assignment create --assignee <client-id> --role "Contributor" --scope /subscriptions/<subscription-id>
+az role assignment create --assignee <client-id> --role "User Access Administrator" --scope /subscriptions/<subscription-id>
+```
 
-Go to your repository on GitHub.
+#### 3. Store GitHub Secret
 
-Navigate to Settings → Secrets and variables → Actions.
+- Name: `AZURE_CREDENTIALS`
+- Value: Output from `az ad sp create-for-rbac`
 
-Click the Secrets tab.
+---
 
-Click New repository secret.
+## ⚙️ GitHub Actions Workflows
 
-Provide:
+### 📄 `infra-deploy.yml`
 
-Name: AZURE_CREDENTIALS
+Automates:
 
-Secret: (Paste the output from the az ad sp create-for-rbac command)
-
-Click Add secret.
-
-
-Deploy the updated image to AKS using kubectl apply
-
-⚙️ CI/CD Workflow
-The file .github/workflows/infra-deploy.yml automates the following steps:
-
-Terraform initialization
-
-Plan preview of infrastructure changes
-
-Apply changes with minimal manual intervention
-
-⏱️ A successful deployment typically completes in under 5 minutes.
-
-📸 Example Screenshot
+- Terraform init → plan → apply
+- AKS provisioning with minimal manual steps
 A snapshot of the deployment workflow in action:
 ![alt text](image-1.png)
 
+### 📄 `app-deploy.yml`
 
+Automates:
 
-🐳 Docker Setup
-The app is packaged using a Dockerfile based on the lightweight ruby:2.7-alpine image.
+- Docker build and push to ACR
+- Rolling update to AKS
 
-Build and test locally:
+---
 
+## 🐳 Dockerization
+
+Based on `ruby:2.7-alpine`. Local test:
+
+```bash
 docker build -t cats-app .
 docker run -p 8000:8000 cats-app
-Access via: http://localhost:8000
+# Access: http://localhost:8000
+```
 
-☸️ Kubernetes Manifests
-Located in /manifests, these define how the app runs inside AKS.
+---
 
-Below are the key files:
+## ☸️ Kubernetes Manifests (`/manifests`)
 
-namespace.yaml: Creates the cats-prod namespace
+| File              | Purpose |
+|-------------------|---------|
+| `namespace.yaml`  | Creates `cats-prod` namespace |
+| `deployment.yaml` | Deploys app with rolling updates |
+| `service.yaml`    | Public LoadBalancer service |
+| `hpa.yaml`        | CPU-based autoscaler |
 
-deployment.yaml: Deploys 3 replicas using a rolling update strategy:
+### 🩺 Health Check
 
-maxSurge: 1: Allows 1 extra pod during updates
+Configured `readinessProbe` using `/health` endpoint.
 
-maxUnavailable: 0: No pod downtime during updates
+---
 
-service.yaml: Exposes the app via a public LoadBalancer with Azure DNS label
+## 🚀 Manual Deployment (v1.0.0)
 
-hpa.yaml: Horizontal Pod Autoscaler to scale based on CPU utilization
-
-Health Check
-Uses a readinessProbe on /health to ensure pods only receive traffic when ready
-
-deploy the version 1.0.0 on the AKS cluster.
-
-The deployment of version 1.0.0 will be done manually with the steps below:
-
-# 1. Build and push
+```bash
+# Set variables
 export ACR_NAME=$(terraform output -raw acr_name)
+
+# Build & Push
 docker build -t $ACR_NAME.azurecr.io/cats-app:1.0.0 .
 az acr login --name $ACR_NAME
 docker push $ACR_NAME.azurecr.io/cats-app:1.0.0
-The screenshot below shows the image on Azure Container registry
-![alt text](image-2.png)
 
-# 4. Deploy
-az aks get-credentials --resource-group $(terraform output -raw resource_group_name) --name $(terraform output -raw aks_name)
+# AKS Login
+az aks get-credentials   --resource-group $(terraform output -raw resource_group_name)   --name $(terraform output -raw aks_name)
+
+# Apply manifests
 kubectl apply -f manifests/namespace.yaml
 sed -i "s/\$ACR_NAME/$ACR_NAME/g" manifests/deployment.yaml
 sed -i "s/\$TAG/1.0.0/g" manifests/deployment.yaml
 kubectl apply -f manifests/
 
-Following the successful deployment of the manifests above, the cats app can be accessed via the Loadbalancer frontend ip
-http://128.203.84.44/
+The screenshot below shows the image on Azure Container registry
+![alt text](image-2.png)
+```
+
+📍 App will be accessible via LoadBalancer IP (e.g. `http://128.203.84.44/`)
+
 ![alt text](image-3.png)
 
+---
 
+## 🔁 CI/CD for v2.0.1
 
-Automate For Version 2.0.1 Upgrade:
-
-# 1. Commit and tag
+```bash
 git commit -am "Prepare v2.0.1 release"
 git tag v2.0.1
 git push origin v2.0.1
+```
 
-# Pipeline automatically:
-# - Builds new image
-# - Pushes to ACR
-# - Updates deployment with zero downtime
+Pipeline auto-triggers:
 
-The image shows the complete pipeline in github actions
-
-
-
-🔁 Zero Downtime Deployment Strategy
-Achieved using:
-
-Rolling Updates in the deployment config (no downtime when releasing new versions)
-
-Readiness Probes to delay traffic routing until pods are healthy
-
-Horizontal Pod Autoscaling to automatically adjust based on load
-
-Load Balancer Service to distribute traffic evenly
-
-🔄 Continuous Deployment (GitHub Actions)
-The .github/workflows/app-deploy.yml workflow automates:
-
-Build & Push the Docker image to ACR
+- Build & push Docker image
+- Deploy to AKS with zero downtime
 
 Screenshot of successful build on Github actions
 ![alt text](image-4.png)
@@ -213,64 +176,74 @@ Screenshot of successful build on Github actions
 Screenshot of success deploy to ACR
 ![alt text](image-5.png)
 
-🔧 Configuration
-These ENV variables control the app behavior:
+---
 
-Variable	Default	Description
-RACK_ENV	production	Sinatra environment
-PORT	8000	App port
-WEB_CONCURRENCY	1	Puma worker processes
-MAX_THREADS	1	Max threads per Puma process
+## 🧪 Local Testing
 
-## ✅ Pros and Cons of Stack Decisions
-
-| Tool/Choice     | Pros                                                                 | Cons                                                  |
-|------------------|----------------------------------------------------------------------|--------------------------------------------------------|
-| Terraform        | Declarative, modular, widely supported, stateful management         | State file complexity, slower with large infra        |
-| AKS              | Fully managed K8s, integrates well with Azure, supports autoscaling | Can be overkill for simple apps, steep learning curve |
-| ACR              | Secure image storage, seamless with AKS                             | Extra cost compared to DockerHub                      |
-| GitHub Actions   | Native CI/CD, secure secret handling, highly customizable           | Complex matrix workflows can be hard to debug         |
-| Docker           | Portable, lightweight, standard container format                    | Layer caching issues on large builds                  |
-
-
-📂 Directory Structure
-.
-├── Infrastructure/       # Terraform scripts for Azure infra
-├── manifests/            # Kubernetes deployment files
-├── .github/workflows/    # GitHub Actions deployment workflow
-├── lib/cats.rb           # Sinatra app logic
-├── Dockerfile            # Docker image definition
-├── config.ru             # Rack config for Puma
-├── config/puma.rb        # Puma settings
-└── README.md             # This file
-📌 Prerequisites
-Terraform
-
-Azure CLI
-
-kubectl
-
-Docker
-
-Azure Subscription
-
-🧪 Local Testing
-
+```bash
 bundle install
 bundle exec puma -C config/puma.rb
-Then open: http://localhost:8000
+# Visit http://localhost:8000
+```
 
-📦 Deployment Checklist
- Infrastructure provisioned via Terraform
+---
 
- App containerized and pushed to ACR
+## 🔄 Zero Downtime Strategy
 
- Kubernetes manifests applied to AKS
+- **Rolling Updates** — ensures no pod goes down
+- **Readiness Probe** — verifies app is ready
+- **Autoscaling** — adjusts replicas based on CPU
+- **Load Balancer** — evenly routes traffic
 
- Rolling updates enabled
+---
 
- Autoscaling and health checks configured
+## ⚙️ ENV Configuration
 
- GitHub Actions automated deploy pipeline
+| Variable        | Default     | Description |
+|----------------|-------------|-------------|
+| `RACK_ENV`     | production  | Sinatra env |
+| `PORT`         | 8000        | App port |
+| `WEB_CONCURRENCY` | 1        | Puma workers |
+| `MAX_THREADS`  | 1           | Puma threads |
+
+---
+
+## ✅ Stack Review
+
+| Tool            | Pros                                           | Cons |
+|-----------------|------------------------------------------------|------|
+| Terraform       | Declarative, reusable, stateful                | Steeper learning curve |
+| AKS             | Fully managed, autoscaling, secure             | Overkill for small apps |
+| ACR             | Secure & native integration with AKS           | Extra cost |
+| GitHub Actions  | Built-in CI/CD, secret management              | Debugging complexity |
+| Docker          | Lightweight, consistent, dev-friendly          | Can grow large without pruning |
+
+---
+
+## 📂 Project Structure
+
+```
+.
+├── Infrastructure/       # Terraform scripts
+├── manifests/            # Kubernetes YAMLs
+├── .github/workflows/    # CI/CD pipelines
+├── lib/cats.rb           # Sinatra app logic
+├── Dockerfile            # App container setup
+├── config.ru             # Rack config
+├── config/puma.rb        # Puma web server settings
+└── README.md             # You're here!
+```
+
+---
+
+## 📋 Requirements
+
+- [Terraform](https://developer.hashicorp.com/terraform)
+- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/)
+- [Docker](https://www.docker.com/)
+- Azure Subscription
+
+---
 
 🐾 Made with love for cats.
