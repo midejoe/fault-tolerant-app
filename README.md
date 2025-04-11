@@ -207,12 +207,11 @@ The .github/workflows/app-deploy.yml workflow automates:
 
 Build & Push the Docker image to ACR
 
-Deploy the updated image to AKS using kubectl apply
+Screenshot of successful build on Github actions
+![alt text](image-4.png)
 
-Triggered by:
-Manual trigger (workflow_dispatch)
-
-Push to a versioned tag (e.g., v1.0.0)
+Screenshot of success deploy to ACR
+![alt text](image-5.png)
 
 🔧 Configuration
 These ENV variables control the app behavior:
@@ -275,5 +274,3 @@ Then open: http://localhost:8000
  GitHub Actions automated deploy pipeline
 
 🐾 Made with love for cats.
-
-Let me know if you want a separate `CONTRIBUTING.md` or an architecture diagram
