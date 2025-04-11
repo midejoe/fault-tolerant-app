@@ -31,20 +31,20 @@ jobs:
         creds: ${{ env.AZURE_CREDENTIALS }}
         
     - name: Terraform Init
-      working-directory: ./infrastructure
+      working-directory: ../infrastructure
       run: terraform init
       
     - name: Terraform Plan
-      working-directory: ./infrastructure
+      working-directory: ../infrastructure
       run: terraform plan -out=tfplan
       
-    - name: Terraform Apply
-      working-directory: ./infrastructure
-      run: terraform apply -auto-approve tfplan
+    # - name: Terraform Apply
+    #   working-directory: ../infrastructure
+    #   run: terraform apply -auto-approve tfplan
       
-    - name: Output Terraform Data
-      working-directory: ./infrastructure
-      run: |
-        echo "ACR_NAME=$(terraform output -raw acr_name)" >> $GITHUB_ENV
-        echo "AKS_NAME=$(terraform output -raw aks_name)" >> $GITHUB_ENV
-        echo "RESOURCE_GROUP=$(terraform output -raw resource_group_name)" >> $GITHUB_ENV
+    # - name: Output Terraform Data
+    #   working-directory: ../infrastructure
+    #   run: |
+    #     echo "ACR_NAME=$(terraform output -raw acr_name)" >> $GITHUB_ENV
+    #     echo "AKS_NAME=$(terraform output -raw aks_name)" >> $GITHUB_ENV
+    #     echo "RESOURCE_GROUP=$(terraform output -raw resource_group_name)" >> $GITHUB_ENV
