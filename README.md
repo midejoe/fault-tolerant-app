@@ -10,6 +10,16 @@ The deployment is designed for **zero downtime** using Kubernetes' **rolling upd
 
 ---
 
+## Application Enhancements (Without Changing Core Functionality)
+
+/health Endpoint (Added to lib/cats.rb):
+get '/health' do
+  content_type :json
+  { status: 'healthy', version: ENV['APP_VERSION'] || '1.0.0' }.to_json
+end
+
+This allows the addition of probes in the deployment manifest files where a readiness probe helps to check /health endpoint every 5 seconds to determine when the pod can receive traffic.Also, a liveness probe that checks if application is still running.
+
 ## 🚀 Azure Infrastructure Setup (Terraform)
 
 Infrastructure is defined in the `/Infrastructure` folder using **Terraform**.
@@ -24,8 +34,48 @@ Infrastructure is defined in the `/Infrastructure` folder using **Terraform**.
   - Standard load balancer for public access
 - A **Role Assignment** that allows the AKS cluster to pull images from ACR
 
-### 💻 How to deploy the infrastructure
+### 💻 How to deploy the infrastructure using continuous Deployment (GitHub Actions)
 
+Prerequisities:
+create a service principal that will be used for the login step in the pipeline:
+az ad sp create-for-rbac --name "CatsAppDeploy" --role contributor   --scopes /subscriptions/<subscription-id>  --sdk-auth
+
+assign the service principal a user access adminisrtator role and contributor role at the subscription level
+az role assignment create --assignee <client-id> --role "Contributor" --scope /subscriptions/<subscription-id>  && \
+az role assignment create --assignee <client-id> --role "User Access Administrator" --scope /subscriptions/<subscription-id> 
+
+Secrets management: The login credentials for the service principal(AZURE_CREDENTIALS) will be stored in Github secrets. The following steps are used:
+On GitHub, navigate to the main page of the repository.
+
+Under your repository name, click  Settings. If you cannot see the "Settings" tab, select the  dropdown menu, then click Settings.
+
+Screenshot of a repository header showing the tabs. The "Settings" tab is highlighted by a dark orange outline.
+In the "Security" section of the sidebar, select  Secrets and variables, then click Actions.
+
+Click the Secrets tab.
+
+Screenshot of the "Actions secrets and variables" page. The "Secrets" tab is outlined in dark orange.
+Click New repository secret.
+
+In the Name field, type a name for your secret.
+
+In the Secret field, enter the value for your secret.
+
+Click Add secret.
+
+
+The .github/workflows/infra-deploy.yml workflow automates:
+
+Initialize and preview changes and apply using terraform
+
+ A Successful deployment takes over 4 minutes with minimal manual intervention as shown in the screenshot below:
+ ![alt text](image.png)
+
+
+Deploy the updated image to AKS using kubectl apply
+
+Triggered by:
+Manual trigger (workflow_dispatch)
 1. Navigate to the infrastructure folder:
 
    ```bash
@@ -74,6 +124,40 @@ hpa.yaml: Horizontal Pod Autoscaler to scale based on CPU utilization
 
 Health Check
 Uses a readinessProbe on /health to ensure pods only receive traffic when ready
+
+deploy the version 1.0.0 on the AKS cluster.
+
+The deployment of version 1.0.0 will be done manually with the steps below:
+
+# 1. Build and push
+export ACR_NAME=$(terraform output -raw acr_name)
+docker build -t $ACR_NAME.azurecr.io/cats-app:1.0.0 .
+az acr login --name $ACR_NAME
+docker push $ACR_NAME.azurecr.io/cats-app:1.0.0
+
+# 4. Deploy
+az aks get-credentials --resource-group $(terraform output -raw resource_group_name) --name $(terraform output -raw aks_name)
+kubectl apply -f manifests/namespace.yaml
+sed -i "s/\$ACR_NAME/$ACR_NAME/g" manifests/deployment.yaml
+sed -i "s/\$TAG/1.0.0/g" manifests/deployment.yaml
+kubectl apply -f manifests/
+
+Automate For Version 2.0.1 Upgrade:
+
+# 1. Update version in .bumpversion.cfg
+# 2. Commit and tag
+git commit -am "Prepare v2.0.1 release"
+git tag v2.0.1
+git push origin v2.0.1
+
+# Pipeline automatically:
+# - Builds new image
+# - Pushes to ACR
+# - Updates deployment with zero downtime
+
+# OR manually:
+kubectl set image deployment/cats-app cats-app=$ACR_NAME.azurecr.io/cats-app:2.0.1 -n cats-prod
+kubectl rollout status deployment/cats-app -n cats-prod
 
 🔁 Zero Downtime Deployment Strategy
 Achieved using:
