@@ -83,7 +83,12 @@ jobs:
     - name: Terraform Apply
       working-directory: ./Infrastructure
     #   run: terraform apply -auto-approve tfplan
-      run: terraform -chdir=Infrastructure apply -auto-approve tfplan
+    #   run: terraform -chdir=Infrastructure apply -auto-approve tfplan
+      run: |
+        pwd
+        ls -la
+        ls -la tfplan
+        terraform apply -auto-approve tfplan
       
     - name: Output Terraform Data
       working-directory: ./Infrastructure
