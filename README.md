@@ -90,7 +90,7 @@ Automates:
 - AKS provisioning with minimal manual steps
 A snapshot of the deployment workflow in action:
 ![alt text](image-1.png)
-![alt text](https://raw.githubusercontent.com/midejoe/fault-tolerant-app/main/docs/images/image-1.png)
+![alt text](https://raw.github.com/midejoe/fault-tolerant-app/main/docs/images/image-1.png)
 
 ### 📄 `app-deploy.yml`
 
