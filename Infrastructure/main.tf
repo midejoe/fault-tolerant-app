@@ -54,7 +54,7 @@ resource "azurerm_monitor_workspace" "cats" {
 # Managed Grafana
 ## ---------------------------------------------------
 resource "azurerm_dashboard_grafana" "catsacrboard" {
-  name                              = "graf-test"
+  name                              = "graf-prod-cat"
   resource_group_name               = azurerm_resource_group.cats.name
   location                          = azurerm_resource_group.cats.location
   api_key_enabled                   = true

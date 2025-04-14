@@ -12,6 +12,23 @@ This project demonstrates an end-to-end deployment using:
 - **Azure Container Registry (ACR)** to store Docker images
 - **Terraform** for infrastructure provisioning
 - **GitHub Actions** for CI/CD pipeline automation
+- **Azure Monitor & Managed Grafana** for monitoring & observability
+
+---
+
+## 📂 Project Structure
+
+```
+.
+├── Infrastructure/       # Terraform scripts
+├── manifests/            # Kubernetes YAMLs
+├── .github/workflows/    # CI/CD pipelines
+├── lib/cats.rb           # Sinatra app logic
+├── Dockerfile            # App container setup
+├── config.ru             # Rack config
+├── config/puma.rb        # Puma web server settings
+└── README.md             # You're here!
+```
 
 ✅ Designed for **zero downtime** with health checks, autoscaling, and rolling updates.
 
@@ -98,7 +115,7 @@ az role assignment create --assignee <client-id> --role "User Access Administrat
 Automates:
 
 - Terraform init → plan → apply
-- AKS provisioning with minimal manual steps
+- Deploys AKS, ACR, Azure Monitor, Grafana
 - A snapshot of the deployment workflow in action:
 
 ![Alt text](docs/images/image-1.png)
@@ -106,16 +123,19 @@ Automates:
 
 ### 📄 `app-deploy.yml`
 
-Automates:
+It automates application delivery:
 
-- Docker build and push to ACR
-- Rolling update to AKS
+- Docker build & push to Azure Container Registry (ACR)
+
+- Rolling update to AKS using Kubernetes manifests
 
 ---
 
 ## 🐳 Dockerization
 
-Based on `ruby:2.7-alpine`. Local test:
+The app base image is on `ruby:2.7-alpine` for a lightweight footprint.
+
+Local test:
 
 ```bash
 docker build -t cats-app .
@@ -131,8 +151,8 @@ docker run -p 8000:8000 cats-app
 |-------------------|---------|
 | `namespace.yaml`  | Creates `cats-prod` namespace |
 | `deployment.yaml` | Deploys app with rolling updates |
-| `service.yaml`    | Public LoadBalancer service |
-| `hpa.yaml`        | CPU-based autoscaler |
+| `service.yaml`    | Exposes app via Public LoadBalancer service |
+| `hpa.yaml`        | Auto scales based on CPU usage |
 
 ### 🩺 Health Check
 
@@ -204,6 +224,13 @@ bundle exec puma -C config/puma.rb
 
 ---
 
+## Monitoring & Observability
+Provisioned Automatically:
+
+📊**Azure Monitor Workspace** - Collects metrics and logs from AKS and pods.
+
+📉 **Managed Grafana Dashboard** - Integrated with Monitor for real-time visualization.
+
 ## 🔄 Zero Downtime Strategy
 
 - **Rolling Updates** — ensures no pod goes down
@@ -234,21 +261,6 @@ bundle exec puma -C config/puma.rb
 | GitHub Actions  | Built-in CI/CD, secret management              | Debugging complexity |
 | Docker          | Lightweight, consistent, dev-friendly          | Can grow large without pruning |
 
----
-
-## 📂 Project Structure
-
-```
-.
-├── Infrastructure/       # Terraform scripts
-├── manifests/            # Kubernetes YAMLs
-├── .github/workflows/    # CI/CD pipelines
-├── lib/cats.rb           # Sinatra app logic
-├── Dockerfile            # App container setup
-├── config.ru             # Rack config
-├── config/puma.rb        # Puma web server settings
-└── README.md             # You're here!
-```
 
 ---
 
