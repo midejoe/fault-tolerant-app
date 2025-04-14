@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: cats-app
+  namespace: cats-prod
   annotations:
     service.beta.kubernetes.io/azure-dns-label-name: "cats-app-v1"
 spec:
