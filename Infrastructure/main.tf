@@ -76,17 +76,17 @@ resource "azurerm_role_assignment" "grafana" {
   principal_id         = azurerm_dashboard_grafana.catsacrboard.identity[0].principal_id
 }
  
-# # Add role assignment to Grafana so an admin user can log in
-# resource "azurerm_role_assignment" "grafana-admin" {
-#   scope                = azurerm_dashboard_grafana.catsacrboard.id
-#   role_definition_name = "Grafana Admin"
-#   principal_id         = var.adminGroupObjectIds[0]
-# }
+# Add role assignment to Grafana so an admin user can log in
+resource "azurerm_role_assignment" "grafana-admin" {
+  scope                = azurerm_dashboard_grafana.catsacrboard.id
+  role_definition_name = "Grafana Admin"
+  principal_id         = var.adminGroupObjectIds[0]
+}
 
-# variable "adminGroupObjectIds" {
-#   type        = list(string)
-#   description = "A list of Object IDs of Azure Active Directory Groups which should have Admin Role on the Cluster"
-#   default     = []
-# }
+variable "adminGroupObjectIds" {
+  type        = list(string)
+  description = "A list of Object IDs of Azure Active Directory Groups which should have Admin Role on the Cluster"
+  default     = []
+}
  
 
