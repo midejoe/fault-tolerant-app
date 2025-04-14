@@ -88,9 +88,11 @@ Automates:
 
 - Terraform init → plan → apply
 - AKS provisioning with minimal manual steps
-A snapshot of the deployment workflow in action:
-![alt text](image-1.png)
-![alt text](https://raw.github.com/midejoe/fault-tolerant-app/main/docs/images/image-1.png)
+- A snapshot of the deployment workflow in action:
+<img width="929" alt="image-1" src="https://github.com/user-attachments/assets/d69a1927-5327-4943-8696-25fb8e217c84" />
+
+
+
 
 ### 📄 `app-deploy.yml`
 
@@ -149,12 +151,14 @@ sed -i "s/\$TAG/1.0.0/g" manifests/deployment.yaml
 kubectl apply -f manifests/
 
 The screenshot below shows the image on Azure Container registry
-![alt text](image-2.png)
+<img width="865" alt="image-2" src="https://github.com/user-attachments/assets/8d88650b-1e66-4fbf-bec0-c92e0242d31a" />
+
 ```
 
 📍 App will be accessible via LoadBalancer IP (e.g. `http://128.203.84.44/`)
 
-![alt text](image-3.png)
+<img width="283" alt="image-3" src="https://github.com/user-attachments/assets/7334e259-bb95-4dc5-a87d-da2dbbfdb0e9" />
+
 
 ---
 
@@ -171,11 +175,12 @@ Pipeline auto-triggers:
 - Build & push Docker image
 - Deploy to AKS with zero downtime
 
-Screenshot of successful build on Github actions
-![alt text](image-4.png)
+- Screenshot of successful build on Github actions
+![image-4](https://github.com/user-attachments/assets/c0af7626-e8e5-4269-8b75-e962e2af5d68)
 
-Screenshot of success deploy to ACR
-![alt text](image-5.png)
+- Screenshot of success deploy to ACR
+![image-5](https://github.com/user-attachments/assets/79ef90bd-7f6b-4bb8-8970-86b2ed9315fd)
+
 
 ---
 
