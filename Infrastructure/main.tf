@@ -50,8 +50,43 @@ resource "azurerm_monitor_workspace" "cats" {
   location            = azurerm_resource_group.cats.location
 }
 
-resource "azurerm_kubernetes_cluster_extension" "monitoring" {
-  name           = "microsoft.azuremonitor.containers"
-  cluster_id     = azurerm_kubernetes_cluster.aks.id
-  extension_type = "microsoft.azuremonitor.containers"
+## ---------------------------------------------------
+# Managed Grafana
+## ---------------------------------------------------
+resource "azurerm_dashboard_grafana" "catsacrboard" {
+  name                              = "graf-test"
+  resource_group_name               = azurerm_resource_group.cats.name
+  location                          = azurerm_resource_group.cats.location
+  api_key_enabled                   = true
+  deterministic_outbound_ip_enabled = false
+  public_network_access_enabled     = true
+  grafana_major_version = 11
+  identity {
+    type = "SystemAssigned"
+  }
+  azure_monitor_workspace_integrations {
+    resource_id = azurerm_monitor_workspace.cats.id
+  }
 }
+ 
+# Add required role assignment over resource group containing the Azure Monitor Workspace
+resource "azurerm_role_assignment" "grafana" {
+  scope                = azurerm_resource_group.cats.id
+  role_definition_name = "Monitoring Reader"
+  principal_id         = azurerm_dashboard_grafana.catsacrboard.identity[0].principal_id
+}
+ 
+# # Add role assignment to Grafana so an admin user can log in
+# resource "azurerm_role_assignment" "grafana-admin" {
+#   scope                = azurerm_dashboard_grafana.catsacrboard.id
+#   role_definition_name = "Grafana Admin"
+#   principal_id         = var.adminGroupObjectIds[0]
+# }
+
+# variable "adminGroupObjectIds" {
+#   type        = list(string)
+#   description = "A list of Object IDs of Azure Active Directory Groups which should have Admin Role on the Cluster"
+#   default     = []
+# }
+ 
+

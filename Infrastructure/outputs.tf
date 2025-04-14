@@ -16,3 +16,8 @@ output "acr_name" {
 output "aks_name" {
   value = azurerm_kubernetes_cluster.aks.name
 }
+
+# Output the grafana url for usability
+output "grafana_url" {
+  value = azurerm_dashboard_grafana.default.endpoint
+}
