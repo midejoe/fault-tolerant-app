@@ -210,7 +210,7 @@ Pipeline auto-triggers:
 
 - Screenshot of success deploy to ACR
 
-![Alt text](docs/images/image-5.png)
+![Alt text](docs/images/image-8.png)
 
 ---
 
